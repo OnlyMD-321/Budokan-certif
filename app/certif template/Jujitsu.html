@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Budokan du Maroc - Diplôme de Grade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+  /* --- Paramètres stricts d'impression A4 Paysage --- */
+  @page { 
+    size: 297mm 210mm; 
+    margin: 0; 
+  }
+  
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  body { 
+    font-family: 'EB Garamond', 'Georgia', serif; 
+    background-color: #222; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  
+  /* --- Le Canevas (Papier Washi Créatif) --- */
+  .certificate-canvas { 
+    width: 297mm; 
+    height: 210mm; 
+    background-color: #fdfaf2; 
+    background-image: 
+      radial-gradient(circle at center, transparent 50%, rgba(139, 28, 28, 0.03) 100%),
+      radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.05) 100%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+    padding: 12mm; 
+    box-sizing: border-box;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8); 
+    position: relative;
+    overflow: hidden; 
+  }
+
+  @media print {
+    body { background-color: white; display: block; }
+    .certificate-canvas { 
+      box-shadow: none; 
+      width: 297mm !important; 
+      height: 210mm !important; 
+      padding: 12mm !important;
+      position: absolute;
+      top: 0; left: 0;
+    }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+
+  /* --- BORDURES JAPONAISES --- */
+  .border-outer {
+    border: 7px solid #151515; 
+    height: 100%;
+    padding: 6px;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  .border-middle {
+    border: 2px solid #b89447; 
+    height: 100%;
+    padding: 4px;
+    box-sizing: border-box;
+  }
+
+  .border-inner {
+    border: 1px solid #8b1c1c; 
+    height: 100%;
+    position: relative;
+    padding: 20px 50px; 
+    box-sizing: border-box;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  /* Coins décoratifs imbriqués */
+  .corner {
+    position: absolute;
+    width: 38px;
+    height: 38px;
+    border: 5px solid #151515;
+    z-index: 10;
+  }
+  .corner-tl { top: -3px; left: -3px; border-right: none; border-bottom: none; }
+  .corner-tr { top: -3px; right: -3px; border-left: none; border-bottom: none; }
+  .corner-bl { bottom: -3px; left: -3px; border-right: none; border-top: none; }
+  .corner-br { bottom: -3px; right: -3px; border-left: none; border-top: none; }
+
+  /* Calligraphie Marginale */
+  .vertical-text {
+    position: absolute;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: 'Yu Mincho', 'MS Mincho', serif;
+    font-size: 24px;
+    letter-spacing: 12px;
+    color: #333;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.7;
+    white-space: nowrap;
+    mix-blend-mode: multiply; 
+  }
+  .vertical-left { left: 22px; }
+  .vertical-right { right: 22px; }
+
+  /* --- FILIGRANE VERTICAL --- */
+  .watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 160px; 
+    color: #d1bfae; 
+    opacity: 0.35;
+    z-index: 0;
+    pointer-events: none;
+    font-family: 'Yu Mincho', 'MS Mincho', serif;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    letter-spacing: 20px; 
+    white-space: nowrap; 
+    mix-blend-mode: multiply;
+  }
+
+  /* --- MISE EN PAGE DU CONTENU --- */
+  .content-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+  }
+
+  /* En-tête */
+  .header-section { margin-bottom: 0; }
+
+  /* Logo */
+  .club-logo {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 12px auto;
+    display: block;
+    object-fit: contain;
+    background-color: #fff; 
+    border: 2px solid #b89447; 
+    border-radius: 50%; 
+    padding: 5px; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12); 
+  }
+
+  .club-name {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: #151515;
+    text-transform: uppercase;
+  }
+
+  .club-subtitle {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    color: #8b1c1c;
+    margin-top: 5px;
+    text-transform: uppercase;
+    font-variant-numeric: oldstyle-nums; 
+  }
+
+  /* Corps du diplôme */
+  .title {
+    font-size: 42px;
+    font-weight: 600;
+    letter-spacing: 12px;
+    margin: 5px 0 10px 0; 
+    color: #151515;
+    text-shadow: 1px 1px 0px rgba(255,255,255,0.8);
+  }
+
+  .certifies {
+    font-style: italic;
+    font-size: 19px;
+    color: #444;
+    margin-bottom: 10px; 
+  }
+
+  /* Lignes de remplissage élégantes */
+  .student-name-line {
+    display: inline-block;
+    width: 480px;
+    height: 40px; /* Increased height slightly to accommodate the larger text */
+    margin: 5px 0;
+    border-bottom: 2px dashed #b89447; 
+    /* INCREASED FONT SIZE HERE */
+    font-size: 36px;
+    font-weight: bold;
+    color: #000;
+    line-height: 40px; /* Aligns text perfectly above the line */
+  }
+
+  .achievement-text {
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: 85%;
+    margin: 15px auto; 
+    color: #222;
+  }
+
+  .rank-display-line {
+    display: inline-block;
+    width: 320px;
+    height: 25px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #8b1c1c; 
+    font-size: 20px;
+    font-weight: bold;
+    color: #8b1c1c;
+    text-transform: uppercase;
+  }
+
+  /* Pied de page */
+  .footer-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 40px 10px 40px; 
+    margin-top: auto;
+  }
+
+  .info-block {
+    text-align: left;
+    font-size: 18px;
+  }
+
+  .info-line { margin-bottom: 10px; color: #151515; }
+  
+  .info-line span {
+    display: inline-block;
+    border-bottom: 1px solid #151515;
+    width: 200px;
+    color: #000;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .signature-block {
+    text-align: center;
+    position: relative;
+  }
+
+  /* Sceau Hanko Hyper-réaliste */
+  .hanko-seal {
+    position: absolute;
+    top: -55px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border: 5px solid #b31b1b;
+    color: #b31b1b;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    opacity: 0.9;
+    z-index: -1;
+    transform: rotate(-5deg);
+    font-family: 'Yu Mincho', 'MS Mincho', serif;
+    box-shadow: inset 0 0 4px rgba(179, 27, 27, 0.4);
+    mix-blend-mode: multiply; 
+  }
+
+  .signature-line {
+    border-bottom: 1px solid #151515;
+    width: 280px;
+    height: 35px;
+    margin-bottom: 5px;
+  }
+
+  .sensei-name {
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin: 0;
+    color: #151515;
+  }
+
+  .sensei-title {
+    font-size: 16px;
+    color: #666;
+    font-style: italic;
+    margin: 2px 0 0 0;
+  }
+</style>
+</head>
+<body>
+
+  <div class="certificate-canvas">
+    <div class="border-outer">
+      
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="border-middle">
+        <div class="border-inner">
+          
+          <div class="vertical-text vertical-left">伝統柔術</div> 
+          <div class="vertical-text vertical-right">モロッコ武道館</div> 
+          
+          <div class="watermark">柔術</div>
+
+          <div class="content-wrapper">
+            
+            <div class="header-section">
+              <img src="jujitsu.png" alt="Logo Jujitsu" class="club-logo">
+              <div class="club-name">Budokan du Maroc</div>
+              <div class="club-subtitle">DEPUIS 1983</div>
+            </div>
+
+            <div>
+              <div class="title">CERTIFICAT DE GRADE</div>
+              <div class="certifies">Nous certifions par la présente que</div>
+              
+              <div class="student-name-line">Doha MABCHOUR</div>
+              
+              <div class="achievement-text">
+                après avoir suivi un entraînement rigoureux aux disciplines physiques et mentales du Budo, et ayant démontré avec succès sa maîtrise des techniques requises, est officiellement promu(e) au grade de
+              </div>
+              
+              <div class="rank-display-line"> Marron </div>
+            </div>
+
+            <div class="footer-section">
+              <div class="info-block">
+                <div class="info-line">Date : <span> 12 Mars 2026</span></div>
+                
+                <div class="info-line">Lieu : <span>Casablanca, Maroc</span></div>
+              </div>
+
+              <div class="signature-block">
+                <div class="hanko-seal">武道</div> 
+                <div class="signature-line"></div>
+                
+                <p class="sensei-name">Bahdou Abderrahmane</p>
+                
+                <p class="sensei-title">Shihan / DTN</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
