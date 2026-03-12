@@ -7,10 +7,11 @@ import { aikidoLogo, jujitsuLogo } from '@/lib/logos';
 
 export const maxDuration = 60; // Max execution time for Vercel
 
-const getHtmlTemplate = (name: string, rank: string, date: string, location: string, discipline: string) => {
+const getHtmlTemplate = (name: string, rank: string, date: string, location: string, discipline: string, baseUrl: string) => {
   const isJujitsu = discipline === 'Jujitsu';
   
-  const logo = isJujitsu ? jujitsuLogo : aikidoLogo;
+  const logoPath = isJujitsu ? jujitsuLogo : aikidoLogo;
+  const logo = `${baseUrl}${logoPath}`;
   const borderMiddleColor = isJujitsu ? '#b89447' : '#8b1c1c';
   const borderInnerColor = isJujitsu ? '#8b1c1c' : '#b89447';
   const verticalLeft = isJujitsu ? '伝統柔術' : '居合刀法';
@@ -217,8 +218,11 @@ export async function POST(req: Request) {
       });
     }
 
+    const { origin } = new URL(req.url);
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || origin;
+
     const page = await browser.newPage();
-    await page.setContent(getHtmlTemplate(studentName, rank, date, location, discipline), { waitUntil: 'networkidle0' });
+    await page.setContent(getHtmlTemplate(studentName, rank, date, location, discipline, baseUrl), { waitUntil: 'networkidle0' });
 
     // Rasterizing the complex CSS onto a PNG format
     const screenshotBuffer = await page.screenshot({ type: 'png', fullPage: true });
