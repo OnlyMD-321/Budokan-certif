@@ -38,7 +38,7 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
 <title>Budokan du Maroc - Diplôme</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
 <style>
   @page { size: 297mm 210mm; margin: 0; }
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
@@ -73,7 +73,7 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
 
   .vertical-text {
     position: absolute; writing-mode: vertical-rl; text-orientation: upright;
-    font-family: 'Yu Mincho', 'MS Mincho', serif; font-size: 24px; letter-spacing: 12px;
+    font-family: 'Noto Serif JP', 'Yu Mincho', 'MS Mincho', serif; font-size: 24px; letter-spacing: 12px;
     color: #333; top: 50%; transform: translateY(-50%); opacity: 0.7; white-space: nowrap; mix-blend-mode: multiply; 
   }
   .vertical-left { left: 22px; }
@@ -82,7 +82,7 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
   .watermark {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     font-size: 150px; color: #d1bfae; opacity: 0.30; z-index: 0; pointer-events: none;
-    font-family: 'Yu Mincho', 'MS Mincho', serif; writing-mode: vertical-rl; text-orientation: upright;
+    font-family: 'Noto Serif JP', 'Yu Mincho', 'MS Mincho', serif; writing-mode: vertical-rl; text-orientation: upright;
     letter-spacing: 20px; white-space: nowrap; mix-blend-mode: multiply;
   }
 
@@ -122,7 +122,7 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
     position: absolute; top: -55px; right: 20px; width: 60px; height: 60px;
     border: 5px solid #b31b1b; color: #b31b1b; border-radius: 10px; display: flex;
     align-items: center; justify-content: center; font-size: 30px; opacity: 0.9;
-    z-index: -1; transform: rotate(-5deg); font-family: 'Yu Mincho', 'MS Mincho', serif;
+    z-index: -1; transform: rotate(-5deg); font-family: 'Noto Serif JP', 'Yu Mincho', 'MS Mincho', serif;
     box-shadow: inset 0 0 4px rgba(179, 27, 27, 0.4); mix-blend-mode: multiply; 
   }
 
