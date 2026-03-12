@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
+import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import { prisma } from '@/lib/prisma';
 import { aikidoLogo, jujitsuLogo } from '@/lib/logos';
@@ -193,8 +194,8 @@ export async function POST(req: Request) {
       console.warn("Prisma save failed, continuing generation...", dbError);
     }
 
-    const executablePath = process.env.NODE_ENV === 'production' ? await chromium.executablePath() : undefined;
-    
+    const executablePath = process.env.NODE_ENV === 'production' ? await chromium.executablePath(path.join(process.cwd(), 'node_modules', '@sparticuz', 'chromium', 'bin')) : process.env.CHROME_EXECUTABLE_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+
     // Puppeteer Viewport matching A4 proportions at 96 DPI
     // 297mm = 1122.5px, 210mm = 793.7px
     const VIEWPORT_WIDTH = 1123;
@@ -206,7 +207,7 @@ export async function POST(req: Request) {
       browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT, deviceScaleFactor: SCALE_FACTOR },
-        executablePath: executablePath || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        executablePath: executablePath,
         headless: true,
       });
     } catch {
