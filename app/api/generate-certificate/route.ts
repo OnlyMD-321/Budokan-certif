@@ -1,34 +1,74 @@
-import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
-import path from 'path';
-import { PDFDocument } from 'pdf-lib';
-import { prisma } from '@/lib/prisma';
-import { aikidoLogo, jujitsuLogo } from '@/lib/logos';
+import { NextResponse } from "next/server";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
+import path from "path";
+import { PDFDocument } from "pdf-lib";
+import { prisma } from "@/lib/prisma";
+import { aikidoLogo, jujitsuLogo } from "@/lib/logos";
+import { recordAuditEvent } from "@/lib/audit";
 
-export const maxDuration = 60; // Max execution time for Vercel
+export const maxDuration = 60;
 
-const getHtmlTemplate = (name: string, rank: string, date: string, location: string, discipline: string, baseUrl: string) => {
-  const isJujitsu = discipline === 'Jujitsu';
-  
-  const logoPath = isJujitsu ? jujitsuLogo : aikidoLogo;
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const disciplineConfig = {
+  Jujitsu: {
+    borderMiddleColor: "#b89447",
+    borderInnerColor: "#8b1c1c",
+    verticalLeft: "伝統柔術",
+    watermarkText: "柔術",
+    subtitleColor: "#8b1c1c",
+    titleColor: "#151515",
+    achievementText:
+      "après avoir suivi un entraînement rigoureux aux disciplines physiques et mentales du Budo, et ayant démontré avec succès sa maîtrise des techniques requises, est officiellement promu(e) au grade de",
+    hankoText: "武道",
+    title: "CERTIFICAT DE GRADE",
+    subtitle: "JUJITSU",
+  },
+  "Aïkido": {
+    borderMiddleColor: "#8b1c1c",
+    borderInnerColor: "#b89447",
+    verticalLeft: "居合刀法",
+    watermarkText: "合気道",
+    subtitleColor: "#b89447",
+    titleColor: "#8b1c1c",
+    achievementText:
+      "après avoir suivi un entraînement rigoureux aux disciplines physiques et mentales de l'Aïkido et de l'art du sabre (Iai Toho), et ayant démontré avec succès sa maîtrise des techniques requises, est officiellement promu(e) au grade de",
+    hankoText: "合気",
+    title: "DIPLÔME D'AÏKIDO",
+    subtitle: "AÏKIDO & IAI TOHO",
+  },
+} as const;
+
+const getHtmlTemplate = (
+  name: string,
+  rank: string,
+  date: string,
+  location: string,
+  discipline: string,
+  baseUrl: string,
+) => {
+  const config = discipline === "Aïkido" ? disciplineConfig["Aïkido"] : disciplineConfig.Jujitsu;
+  const logoPath = discipline === "Aïkido" ? aikidoLogo : jujitsuLogo;
   const logo = `${baseUrl}${logoPath}`;
-  const borderMiddleColor = isJujitsu ? '#b89447' : '#8b1c1c';
-  const borderInnerColor = isJujitsu ? '#8b1c1c' : '#b89447';
-  const verticalLeft = isJujitsu ? '伝統柔術' : '居合刀法';
-  const watermarkText = isJujitsu ? '柔術' : '合気道';
-  const subtitleColor = isJujitsu ? '#8b1c1c' : '#b89447';
-  const titleColor = isJujitsu ? '#151515' : '#8b1c1c';
-  const achievementText = isJujitsu 
-    ? 'après avoir suivi un entraînement rigoureux aux disciplines physiques et mentales du Budo, et ayant démontré avec succès sa maîtrise des techniques requises, est officiellement promu(e) au grade de'
-    : "après avoir suivi un entraînement rigoureux aux disciplines physiques et mentales de l'Aïkido et de l'art du sabre (Iai Toho), et ayant démontré avec succès sa maîtrise des techniques requises, est officiellement promu(e) au grade de";
-  const hankoText = isJujitsu ? '武道' : '合気';
+  const safeName = escapeHtml(name);
+  const safeRank = escapeHtml(rank);
+  const safeLocation = escapeHtml(location);
+  const safeDiscipline = escapeHtml(discipline);
 
-  const formattedDate = date ? new Date(date).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }) : '';
+  const formattedDate = date
+    ? new Date(date).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
 
   return `
 <!DOCTYPE html>
@@ -42,28 +82,28 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
 <style>
   @page { size: 297mm 210mm; margin: 0; }
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
-  body { 
-    font-family: 'EB Garamond', 'Georgia', serif; 
-    background-color: #ffffff; 
+  body {
+    font-family: 'EB Garamond', 'Georgia', serif;
+    background-color: #ffffff;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
   }
-  
-  .certificate-canvas { 
-    width: 297mm; 
-    height: 210mm; 
-    background-color: #ffffff; 
-    padding: 12mm; 
+
+  .certificate-canvas {
+    width: 297mm;
+    height: 210mm;
+    background-color: #ffffff;
+    padding: 12mm;
     box-sizing: border-box;
     position: relative;
-    overflow: hidden; 
+    overflow: hidden;
   }
 
   .border-outer { border: 7px solid #151515; height: 100%; padding: 6px; box-sizing: border-box; position: relative; }
-  .border-middle { border: 2px solid ${borderMiddleColor}; height: 100%; padding: 4px; box-sizing: border-box; }
-  .border-inner { border: 1px solid ${borderInnerColor}; height: 100%; position: relative; padding: 20px 50px; box-sizing: border-box; text-align: center; overflow: hidden; }
+  .border-middle { border: 2px solid ${config.borderMiddleColor}; height: 100%; padding: 4px; box-sizing: border-box; }
+  .border-inner { border: 1px solid ${config.borderInnerColor}; height: 100%; position: relative; padding: 20px 50px; box-sizing: border-box; text-align: center; overflow: hidden; }
 
   .corner { position: absolute; width: 38px; height: 38px; border: 5px solid #151515; z-index: 10; }
   .corner-tl { top: -3px; left: -3px; border-right: none; border-bottom: none; }
@@ -72,18 +112,38 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
   .corner-br { bottom: -3px; right: -3px; border-left: none; border-top: none; }
 
   .vertical-text {
-    position: absolute; writing-mode: vertical-rl; text-orientation: upright;
-    font-family: 'Noto Serif JP', 'Yu Mincho', 'MS Mincho', serif; font-size: 24px; letter-spacing: 12px;
-    color: #333; top: 50%; transform: translateY(-50%); opacity: 0.7; white-space: nowrap; mix-blend-mode: multiply; 
+    position: absolute;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: 'Noto Serif JP', 'Yu Mincho', 'MS Mincho', serif;
+    font-size: 24px;
+    letter-spacing: 12px;
+    color: #333;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.7;
+    white-space: nowrap;
+    mix-blend-mode: multiply;
   }
   .vertical-left { left: 22px; }
   .vertical-right { right: 22px; }
 
   .watermark {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    font-size: 150px; color: #d1bfae; opacity: 0.30; z-index: 0; pointer-events: none;
-    font-family: 'Noto Serif JP', 'Yu Mincho', 'MS Mincho', serif; writing-mode: vertical-rl; text-orientation: upright;
-    letter-spacing: 20px; white-space: nowrap; mix-blend-mode: multiply;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 150px;
+    color: #d1bfae;
+    opacity: 0.30;
+    z-index: 0;
+    pointer-events: none;
+    font-family: 'Noto Serif JP', 'Yu Mincho', 'MS Mincho', serif;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    letter-spacing: 20px;
+    white-space: nowrap;
+    mix-blend-mode: multiply;
   }
 
   .content-wrapper { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; justify-content: space-between; }
@@ -91,25 +151,25 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
 
   .club-logo {
     width: 100px; height: 100px; margin: 0 auto 12px auto; display: block; object-fit: contain;
-    background-color: #fff; border: 2px solid #b89447; border-radius: 50%; padding: 5px; box-shadow: 0 5px 15px rgba(0,0,0,0.12); 
+    background-color: #fff; border: 2px solid #b89447; border-radius: 50%; padding: 5px; box-shadow: 0 5px 15px rgba(0,0,0,0.12);
   }
 
   .club-name { font-size: 34px; font-weight: 700; letter-spacing: 6px; color: #151515; text-transform: uppercase; }
-  .club-subtitle { font-size: 16px; font-weight: 600; letter-spacing: 4px; color: ${subtitleColor}; margin-top: 5px; text-transform: uppercase; }
+  .club-subtitle { font-size: 16px; font-weight: 600; letter-spacing: 4px; color: ${config.subtitleColor}; margin-top: 5px; text-transform: uppercase; }
 
-  .title { font-size: 42px; font-weight: 600; letter-spacing: 12px; margin: 5px 0 10px 0; color: ${titleColor}; }
+  .title { font-size: 42px; font-weight: 600; letter-spacing: 12px; margin: 5px 0 10px 0; color: ${config.titleColor}; }
   .certifies { font-style: italic; font-size: 19px; color: #444; margin-bottom: 10px; }
 
   .student-name-line {
     display: inline-block; width: 480px; height: 40px; margin: 5px 0;
-    border-bottom: 2px dashed #b89447; font-size: 36px; font-weight: bold; color: #000; line-height: 40px; 
+    border-bottom: 2px dashed #b89447; font-size: 36px; font-weight: bold; color: #000; line-height: 40px;
   }
 
   .achievement-text { font-size: 18px; line-height: 1.6; max-width: 85%; margin: 15px auto; color: #222; }
 
   .rank-display-line {
     display: inline-block; width: 320px; height: 25px; margin-bottom: 10px;
-    border-bottom: 2px solid #8b1c1c; font-size: 20px; font-weight: bold; color: #8b1c1c; text-transform: uppercase;
+    border-bottom: 2px solid ${config.subtitleColor}; font-size: 20px; font-weight: bold; color: ${config.subtitleColor}; text-transform: uppercase;
   }
 
   .footer-section { display: flex; justify-content: space-between; align-items: flex-end; padding: 0 40px 10px 40px; margin-top: auto; }
@@ -123,7 +183,7 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
     border: 5px solid #b31b1b; color: #b31b1b; border-radius: 10px; display: flex;
     align-items: center; justify-content: center; font-size: 30px; opacity: 0.9;
     z-index: -1; transform: rotate(-5deg); font-family: 'Noto Serif JP', 'Yu Mincho', 'MS Mincho', serif;
-    box-shadow: inset 0 0 4px rgba(179, 27, 27, 0.4); mix-blend-mode: multiply; 
+    box-shadow: inset 0 0 4px rgba(179, 27, 27, 0.4); mix-blend-mode: multiply;
   }
 
   .signature-line { border-bottom: 1px solid #151515; width: 280px; height: 35px; margin-bottom: 5px; }
@@ -140,29 +200,30 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
       <div class="corner corner-br"></div>
       <div class="border-middle">
         <div class="border-inner">
-          <div class="vertical-text vertical-left">${verticalLeft}</div> 
-          <div class="vertical-text vertical-right">モロッコ武道館</div> 
-          <div class="watermark">${watermarkText}</div>
+          <div class="vertical-text vertical-left">${config.verticalLeft}</div>
+          <div class="vertical-text vertical-right">モロッコ武道館</div>
+          <div class="watermark">${config.watermarkText}</div>
           <div class="content-wrapper">
             <div class="header-section">
               <img src="${logo}" alt="Logo" class="club-logo">
               <div class="club-name">Budokan du Maroc</div>
-              <div class="club-subtitle">DEPUIS 1983</div>
+              <div class="club-subtitle">${config.subtitle}</div>
             </div>
             <div>
-              <div class="title">CERTIFICAT DE GRADE</div>
+              <div class="title">${config.title}</div>
               <div class="certifies">Nous certifions par la présente que</div>
-              <div class="student-name-line">${name}</div>
-              <div class="achievement-text">${achievementText}</div>
-              <div class="rank-display-line">${rank}</div>
+              <div class="student-name-line">${safeName}</div>
+              <div class="achievement-text">${config.achievementText}</div>
+              <div class="rank-display-line">${safeRank}</div>
             </div>
             <div class="footer-section">
               <div class="info-block">
                 <div class="info-line">Date : <span>${formattedDate}</span></div>
-                <div class="info-line">Lieu : <span>${location}</span></div>
+                <div class="info-line">Lieu : <span>${safeLocation}</span></div>
+                <div class="info-line">Discipline : <span>${safeDiscipline}</span></div>
               </div>
               <div class="signature-block">
-                <div class="hanko-seal">${hankoText}</div> 
+                <div class="hanko-seal">${config.hankoText}</div>
                 <div class="signature-line"></div>
                 <p class="sensei-name">Bahdou Abderrahmane</p>
                 <p class="sensei-title">Shihan / DTN</p>
@@ -180,27 +241,61 @@ const getHtmlTemplate = (name: string, rank: string, date: string, location: str
 
 export async function POST(req: Request) {
   try {
-    const { studentName, rank, date, location, discipline } = await req.json();
+    const { studentName, rank, date, location, discipline = "Jujitsu", athleteId = null, championshipId = null } = await req.json();
+    const disciplineEnum = discipline === "Aïkido" ? "AIKIDO" : "JUJITSU";
 
-    if (!studentName || !rank || !date || !location || !discipline) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!rank || !date || !location) {
+      return NextResponse.json({ error: "Tous les champs sont obligatoires." }, { status: 400 });
+    }
+
+    let resolvedStudentName = String(studentName ?? "").trim();
+
+    if (!resolvedStudentName && athleteId) {
+      const athlete = await prisma.athlete.findUnique({ where: { id: String(athleteId) } });
+      resolvedStudentName = athlete?.fullName ?? "";
+    }
+
+    if (!resolvedStudentName) {
+      return NextResponse.json({ error: "Le nom de l'athlète est obligatoire." }, { status: 400 });
     }
 
     try {
-      await prisma.certificate.create({
-        data: { studentName, rank, date: new Date(date), location, discipline },
+      const certificate = await prisma.certificate.create({
+        data: {
+          studentName: resolvedStudentName,
+          rank,
+          date: new Date(date),
+          location,
+          discipline: disciplineEnum,
+          athleteId: athleteId ? String(athleteId) : null,
+          championshipId: championshipId ? String(championshipId) : null,
+        },
+      });
+
+      await recordAuditEvent({
+        action: "CREATE",
+        entityType: "Certificate",
+        entityId: certificate.id,
+        summary: `Certificat généré pour ${resolvedStudentName}`,
+        details: { discipline, rank, location },
+        notification: {
+          type: "SUCCESS",
+          title: "Certificat généré",
+          message: `${resolvedStudentName} · ${discipline} · ${rank}`,
+        },
       });
     } catch (dbError) {
       console.warn("Prisma save failed, continuing generation...", dbError);
     }
 
-    const executablePath = process.env.NODE_ENV === 'production' ? await chromium.executablePath(path.join(process.cwd(), 'node_modules', '@sparticuz', 'chromium', 'bin')) : process.env.CHROME_EXECUTABLE_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+    const executablePath =
+      process.env.NODE_ENV === "production"
+        ? await chromium.executablePath(path.join(process.cwd(), "node_modules", "@sparticuz", "chromium", "bin"))
+        : process.env.CHROME_EXECUTABLE_PATH || "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 
-    // Puppeteer Viewport matching A4 proportions at 96 DPI
-    // 297mm = 1122.5px, 210mm = 793.7px
     const VIEWPORT_WIDTH = 1123;
     const VIEWPORT_HEIGHT = 794;
-    const SCALE_FACTOR = 3; // Captures high resolution (3369 x 2382)
+    const SCALE_FACTOR = 3;
 
     let browser;
     try {
@@ -211,7 +306,7 @@ export async function POST(req: Request) {
         headless: true,
       });
     } catch {
-       browser = await puppeteer.launch({
+      browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT, deviceScaleFactor: SCALE_FACTOR },
         executablePath: process.env.CHROME_EXECUTABLE_PATH,
@@ -223,33 +318,30 @@ export async function POST(req: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || origin;
 
     const page = await browser.newPage();
-    await page.setContent(getHtmlTemplate(studentName, rank, date, location, discipline, baseUrl), { waitUntil: 'networkidle0' });
+    await page.setContent(getHtmlTemplate(resolvedStudentName, rank, date, location, discipline, baseUrl), { waitUntil: "networkidle0" });
 
-    // Rasterizing the complex CSS onto a PNG format
-    const screenshotBuffer = await page.screenshot({ type: 'png', fullPage: true });
+    const screenshotBuffer = await page.screenshot({ type: "png", fullPage: true });
     await browser.close();
 
-    // Flatten it into PDF using pdf-lib
-    // A4 dimensions in PDF points (72 DPI)
     const PDF_WIDTH = 841.89;
     const PDF_HEIGHT = 595.28;
 
     const pdfDoc = await PDFDocument.create();
     const pageObj = pdfDoc.addPage([PDF_WIDTH, PDF_HEIGHT]);
     const image = await pdfDoc.embedPng(screenshotBuffer);
-    
+
     pageObj.drawImage(image, { x: 0, y: 0, width: PDF_WIDTH, height: PDF_HEIGHT });
     const pdfBytes = await pdfDoc.save();
 
     return new NextResponse(pdfBytes as unknown as BodyInit, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="Certificate_${studentName.replace(/\s+/g, '_')}.pdf"`,
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="Certificat_${discipline}_${resolvedStudentName.replace(/\s+/g, "_")}.pdf"`,
       },
     });
-
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("PDF Generation Error:", error);
-    return NextResponse.json({ error: "Failed to generate PDF", details: error.message }, { status: 500 });
+    const details = error instanceof Error ? error.message : "Erreur inconnue";
+    return NextResponse.json({ error: "Impossible de générer le PDF.", details }, { status: 500 });
   }
 }
