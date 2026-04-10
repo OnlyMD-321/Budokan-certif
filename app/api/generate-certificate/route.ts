@@ -241,10 +241,23 @@ const getHtmlTemplate = (
 
 export async function POST(req: Request) {
   try {
-    const { studentName, rank, date, location, discipline = "Jujitsu", athleteId = null, championshipId = null } = await req.json();
+    const {
+      studentName,
+      rank,
+      date,
+      location,
+      discipline = "Jujitsu",
+      athleteId = null,
+      championshipId = null,
+      isBlankTemplate = false,
+    } = await req.json();
     const disciplineEnum = discipline === "Aïkido" ? "AIKIDO" : "JUJITSU";
+    const templateMode = Boolean(isBlankTemplate);
+    const resolvedRank = String(rank ?? "").trim();
+    const resolvedDate = String(date ?? "").trim();
+    const resolvedLocation = String(location ?? "").trim() || "Casablanca";
 
-    if (!rank || !date || !location) {
+    if (!templateMode && (!resolvedRank || !resolvedDate || !resolvedLocation)) {
       return NextResponse.json({ error: "Tous les champs sont obligatoires." }, { status: 400 });
     }
 
@@ -255,37 +268,39 @@ export async function POST(req: Request) {
       resolvedStudentName = athlete?.fullName ?? "";
     }
 
-    if (!resolvedStudentName) {
+    if (!templateMode && !resolvedStudentName) {
       return NextResponse.json({ error: "Le nom de l'athlète est obligatoire." }, { status: 400 });
     }
 
-    try {
-      const certificate = await prisma.certificate.create({
-        data: {
-          studentName: resolvedStudentName,
-          rank,
-          date: new Date(date),
-          location,
-          discipline: disciplineEnum,
-          athleteId: athleteId ? String(athleteId) : null,
-          championshipId: championshipId ? String(championshipId) : null,
-        },
-      });
+    if (!templateMode) {
+      try {
+        const certificate = await prisma.certificate.create({
+          data: {
+            studentName: resolvedStudentName,
+            rank: resolvedRank,
+            date: new Date(resolvedDate),
+            location: resolvedLocation,
+            discipline: disciplineEnum,
+            athleteId: athleteId ? String(athleteId) : null,
+            championshipId: championshipId ? String(championshipId) : null,
+          },
+        });
 
-      await recordAuditEvent({
-        action: "CREATE",
-        entityType: "Certificate",
-        entityId: certificate.id,
-        summary: `Certificat généré pour ${resolvedStudentName}`,
-        details: { discipline, rank, location },
-        notification: {
-          type: "SUCCESS",
-          title: "Certificat généré",
-          message: `${resolvedStudentName} · ${discipline} · ${rank}`,
-        },
-      });
-    } catch (dbError) {
-      console.warn("Prisma save failed, continuing generation...", dbError);
+        await recordAuditEvent({
+          action: "CREATE",
+          entityType: "Certificate",
+          entityId: certificate.id,
+          summary: `Certificat généré pour ${resolvedStudentName}`,
+          details: { discipline, rank: resolvedRank, location: resolvedLocation },
+          notification: {
+            type: "SUCCESS",
+            title: "Certificat généré",
+            message: `${resolvedStudentName} · ${discipline} · ${resolvedRank}`,
+          },
+        });
+      } catch (dbError) {
+        console.warn("Prisma save failed, continuing generation...", dbError);
+      }
     }
 
     const executablePath =
@@ -316,9 +331,10 @@ export async function POST(req: Request) {
 
     const { origin } = new URL(req.url);
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || origin;
+    const nameForTemplate = templateMode ? "" : resolvedStudentName;
 
     const page = await browser.newPage();
-    await page.setContent(getHtmlTemplate(resolvedStudentName, rank, date, location, discipline, baseUrl), { waitUntil: "networkidle0" });
+    await page.setContent(getHtmlTemplate(nameForTemplate, resolvedRank, resolvedDate, resolvedLocation, discipline, baseUrl), { waitUntil: "networkidle0" });
 
     const screenshotBuffer = await page.screenshot({ type: "png", fullPage: true });
     await browser.close();
@@ -332,11 +348,12 @@ export async function POST(req: Request) {
 
     pageObj.drawImage(image, { x: 0, y: 0, width: PDF_WIDTH, height: PDF_HEIGHT });
     const pdfBytes = await pdfDoc.save();
+    const safeName = (templateMode ? "modele_vide" : resolvedStudentName || "sans_nom").replace(/\s+/g, "_");
 
     return new NextResponse(pdfBytes as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="Certificat_${discipline}_${resolvedStudentName.replace(/\s+/g, "_")}.pdf"`,
+        "Content-Disposition": `attachment; filename="Certificat_${discipline}_${safeName}.pdf"`,
       },
     });
   } catch (error: unknown) {

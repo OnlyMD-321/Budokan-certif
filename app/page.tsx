@@ -299,7 +299,7 @@ const defaultCertificateForm: CertificateForm = {
   studentName: "",
   rank: "Blanche",
   date: "",
-  location: "Casablanca, Maroc",
+  location: "Casablanca",
   discipline: "Jujitsu",
 };
 
@@ -926,7 +926,8 @@ function PaginationControls({ totalItems, sectionKey, pagination, onChangePagina
         const url = window.URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = `Certificat_${certificateForm.discipline}_${certificateForm.studentName.replace(/\s+/g, "_")}.pdf`;
+        const safeStudentName = (certificateForm.studentName || "sans_nom").replace(/\s+/g, "_");
+        anchor.download = `Certificat_${certificateForm.discipline}_${safeStudentName}.pdf`;
         document.body.appendChild(anchor);
         anchor.click();
         window.URL.revokeObjectURL(url);
@@ -936,6 +937,50 @@ function PaginationControls({ totalItems, sectionKey, pagination, onChangePagina
       }
 
       await refreshDashboard();
+    } catch (error) {
+      console.error(error);
+      setToast({ type: "error", text: error instanceof Error ? error.message : "Erreur inconnue." });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBlankCertificateDownload = async () => {
+    setActionLoading("certificate");
+    setToast(null);
+
+    try {
+      const response = await fetch("/api/generate-certificate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentName: "",
+          rank: "",
+          date: "",
+          location: "Casablanca",
+          discipline: certificateForm.discipline,
+          athleteId: null,
+          championshipId: null,
+          isBlankTemplate: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Erreur lors du téléchargement du modèle vide.");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `Certificat_${certificateForm.discipline}_modele_vide.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(anchor);
+
+      setToast({ type: "success", text: "Modèle vide téléchargé." });
     } catch (error) {
       console.error(error);
       setToast({ type: "error", text: error instanceof Error ? error.message : "Erreur inconnue." });
@@ -2023,9 +2068,19 @@ function PaginationControls({ totalItems, sectionKey, pagination, onChangePagina
                       ))}
                     </div>
 
-                    <button className={primaryButtonClass} disabled={actionLoading === "certificate"} type="submit">
-                      {actionLoading === "certificate" ? "Génération..." : editingCertificateId ? "Mettre à jour le certificat" : "Générer le certificat"}
-                    </button>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button className={primaryButtonClass} disabled={actionLoading === "certificate"} type="submit">
+                        {actionLoading === "certificate" ? "Génération..." : editingCertificateId ? "Mettre à jour le certificat" : "Générer le certificat"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleBlankCertificateDownload}
+                        disabled={actionLoading === "certificate" || Boolean(editingCertificateId)}
+                        className="inline-flex items-center justify-center rounded-2xl border border-[rgba(93,63,31,0.16)] bg-white px-5 py-4 text-sm font-semibold uppercase tracking-[0.2em] text-stone-700 transition hover:border-[rgba(143,31,31,0.26)] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Télécharger modèle vide
+                      </button>
+                    </div>
                     {editingCertificateId ? (
                       <button
                         type="button"
