@@ -60,7 +60,6 @@ const getHtmlTemplate = (
   const safeName = escapeHtml(name);
   const safeRank = escapeHtml(rank);
   const safeLocation = escapeHtml(location);
-  const safeDiscipline = escapeHtml(discipline);
 
   const formattedDate = date
     ? new Date(date).toLocaleDateString("fr-FR", {
@@ -220,7 +219,6 @@ const getHtmlTemplate = (
               <div class="info-block">
                 <div class="info-line">Date : <span>${formattedDate}</span></div>
                 <div class="info-line">Lieu : <span>${safeLocation}</span></div>
-                <div class="info-line">Discipline : <span>${safeDiscipline}</span></div>
               </div>
               <div class="signature-block">
                 <div class="hanko-seal">${config.hankoText}</div>
